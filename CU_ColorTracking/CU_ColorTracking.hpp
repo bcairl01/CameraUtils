@@ -32,17 +32,17 @@
 		class Color;
 		class ColorTracker;
 
+		typedef uint8_t Pixel[3UL];
+		typedef float(*MatchMethod)(Pixel&,Color&,void*&);
+
 
 		/// IPL Macros
 		#define LC_IPL_R 							2UL
 		#define LC_IPL_G							1UL
 		#define LC_IPL_B							0UL
 		#define LC_IPL_ITR(img,i,j,c) 				img->imageData[i*(img->nChannels*img->width) + j*img->nChannels + c]
-		#define LC_IPL_PXL(img,i,j) 				(img->imageData + i*(img->nChannels*img->width) + j*img->nChannels)
+		#define LC_IPL_PXL(img,i,j) 				(Pixel)(img->imageData + i*(img->nChannels*img->width) + j*img->nChannels)
 
-
-		typedef uint8_t Pixel[3UL];
-		typedef float(*MatchMethod)(Pixel&,Color&,void*&);
 
 
 		namespace MatchMethods
@@ -50,8 +50,8 @@
 		float linear( Pixel& _pxl, Color& target, void*& params );
 		float poly  ( Pixel& _pxl, Color& target, void*& params );
 		float fuzzy ( Pixel& _pxl, Color& target, void*& params );
+		float thresh( Pixel& _pxl, Color& target, void*& params );
 		}
-
 
 
 		class Color
@@ -81,10 +81,9 @@
 		public:
 			void process( IplImage*& _ipl, MatchMethod _mfn, Color& target, void* params = NULL );
 			
-			ColorTracker() :
-				image_handle()
+			ColorTracker( const float _gain ) :
 				saturation(0.0f),
-				gain(0.0f)
+				gain(_gain)
 			{
 				pt.x = pt.y = 0.0f;
 			}

@@ -10,18 +10,21 @@ namespace CamU
 
 	std::ostream& operator<<( std::ostream& os, const Color& color )
 	{
-		os 	<< "<ColorF32>\t" 
+		os  << "<Color>\t"; 
+
+		os 	<< "<F32>\t" 
 			<< bgr_f32[LC_IPL_R] << '\t' 
 			<< bgr_f32[LC_IPL_G] << '\t' 
 			<< bgr_f32[LC_IPL_B] << '\t'
-			<< "</ColorF32>\t";
+			<< "</F32>\t";
 
-		os 	<< "<ColorU08>\t" 
+		os 	<< "<U08>\t" 
 			<< bgr_u08[LC_IPL_R] << '\t' 
 			<< bgr_u08[LC_IPL_G] << '\t' 
 			<< bgr_u08[LC_IPL_B] << '\t'
-			<< "</ColorU08>";
+			<< "</U08>\t";
 
+		os  << "</Color>"; 
 		return os;
 	}
 
@@ -80,6 +83,26 @@ namespace CamU
 
 	namespace MatchMethods
 	{
+		float thresh( Pixel& _pxl, Color& target, void*& params )
+		{
+			Color cpxl(_pxl);
+			float thresh[3UL] = {0.1,0.1,0.1};
+			
+			if(params!=NULL)
+			{
+				for(size_t idx = 0; idx < 3UL; idx++)
+					thresh[idx] = ((float*)params)[idx];
+			}
+
+			for( size_t idx = 0; idx < 3UL; idx++ )
+			{
+				if( fabs(cpxl.bgr_f32[idx] - target.bgr_f32[idx]) > thresh[idx] )
+					return 0.0f;
+			}
+			return 1.0f;
+		} 
+
+
 		float linear( Pixel& _pxl, Color& target, void*& params )
 		{
 			Color cpxl(_pxl);
@@ -124,17 +147,21 @@ namespace CamU
 	/// COLOR TRACKER
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 	std::ostream& operator<<( std::ostream& os, const ColorTracker& color_tracker )
 	{
+		os  << "<ColorTracker>\t"; 
+
 		os 	<< "<Point>\t" 
-			<< pt.x << '\t' 
-			<< pt.y << '\t' 
+			<< pt.x <<'\t' 
+			<< pt.y <<'\t' 
 			<< "</Point>\t";
 
 		os 	<< "<Saturation>\t" 
-			<< saturation << '\t' 
-			<< "</Saturation>";
+			<< saturation<<'\t' 
+			<< "</Saturation>\t";
 
+		os  << "</ColorTracker>"; 
 		return os;
 	}
 
@@ -149,9 +176,9 @@ namespace CamU
 		u_pt.x = u_pt.y = 0.0f;
 
 		/// Get Mean Location with provide matching function
-		for(size_t i = 0; i < _ipl->height; i++) //height of frame pixels
+		for(size_t i = 0; i < _ipl->height; i++)
 		{
-			for(size_t j = 0; j < _ipl->width; j++) //width of frame pixels
+			for(size_t j = 0; j < _ipl->width; j++)
 			{
 				match = _mfn(LC_IPL_PXL(_ipl,i,j),target,params);
 
