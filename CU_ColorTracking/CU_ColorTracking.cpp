@@ -1,7 +1,23 @@
-#include <CU_ColorTracking.hpp>
+#include <CU_ColorTracking/CU_ColorTracking.hpp>
 
 namespace CamU
 {
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// PIXEL
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	std::ostream& operator<<( std::ostream& os, const Pixel& pxl )
+	{
+		os  << "<Pixel>\t"
+			<< (uint16_t)pxl[LC_IPL_R] << '\t' 
+			<< (uint16_t)pxl[LC_IPL_G] << '\t' 
+			<< (uint16_t)pxl[LC_IPL_B] << '\t'
+			<< "</Pixel>"; 
+		return os;
+	}
+
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/// COLOR
@@ -13,15 +29,15 @@ namespace CamU
 		os  << "<Color>\t"; 
 
 		os 	<< "<F32>\t" 
-			<< bgr_f32[LC_IPL_R] << '\t' 
-			<< bgr_f32[LC_IPL_G] << '\t' 
-			<< bgr_f32[LC_IPL_B] << '\t'
+			<< color.bgr_f32[LC_IPL_R] << '\t' 
+			<< color.bgr_f32[LC_IPL_G] << '\t' 
+			<< color.bgr_f32[LC_IPL_B] << '\t'
 			<< "</F32>\t";
 
 		os 	<< "<U08>\t" 
-			<< bgr_u08[LC_IPL_R] << '\t' 
-			<< bgr_u08[LC_IPL_G] << '\t' 
-			<< bgr_u08[LC_IPL_B] << '\t'
+			<< color.bgr_u08[LC_IPL_R] << '\t' 
+			<< color.bgr_u08[LC_IPL_G] << '\t' 
+			<< color.bgr_u08[LC_IPL_B] << '\t'
 			<< "</U08>\t";
 
 		os  << "</Color>"; 
@@ -38,41 +54,28 @@ namespace CamU
 
 
 
-	Color::Color( const uint8_t R08, const uint8_t G08, const uint8_t B08 )
-	{
-		bgr_u08[LC_IPL_R]=R08;
-		bgr_u08[LC_IPL_G]=G08;
-		bgr_u08[LC_IPL_B]=B08;
-
-		bgr_f32[LC_IPL_R]=((float)R08)/255.0f;
-		bgr_f32[LC_IPL_G]=((float)G08)/255.0f;
-		bgr_f32[LC_IPL_B]=((float)B08)/255.0f;
-	}
-
-
-
 	Color::Color( const float   R32, const float   G32, const float   B32 )
 	{
-		bgr_f32[LC_IPL_R]=R08;
-		bgr_f32[LC_IPL_G]=G08;
-		bgr_f32[LC_IPL_B]=B08;
+		bgr_f32[LC_IPL_R]= ((R32<0.0f) ? 0.0f : ( (R32>1.0f) ? 1.0f : R32 ));
+		bgr_f32[LC_IPL_G]= ((G32<0.0f) ? 0.0f : ( (G32>1.0f) ? 1.0f : G32 ));
+		bgr_f32[LC_IPL_B]= ((B32<0.0f) ? 0.0f : ( (B32>1.0f) ? 1.0f : B32 ));
 
-		bgr_u08[LC_IPL_R]=(uint8_t)(R08*255.0f);
-		bgr_u08[LC_IPL_G]=(uint8_t)(G08*255.0f);
-		bgr_u08[LC_IPL_B]=(uint8_t)(B08*255.0f);
+		bgr_u08[LC_IPL_R]=(uint8_t)(bgr_f32[LC_IPL_R]*255.0f);
+		bgr_u08[LC_IPL_G]=(uint8_t)(bgr_f32[LC_IPL_G]*255.0f);
+		bgr_u08[LC_IPL_B]=(uint8_t)(bgr_f32[LC_IPL_B]*255.0f);
 	}
 
 
 
-	Color::Color( Pixel* _pxl )
+	Color::Color( Pixel _pxl )
 	{
 		bgr_u08[LC_IPL_R]=_pxl[LC_IPL_R];
 		bgr_u08[LC_IPL_G]=_pxl[LC_IPL_G];
 		bgr_u08[LC_IPL_B]=_pxl[LC_IPL_B];
 
-		bgr_f32[LC_IPL_R]=((float)R08)/255.0f;
-		bgr_f32[LC_IPL_G]=((float)G08)/255.0f;
-		bgr_f32[LC_IPL_B]=((float)B08)/255.0f;
+		bgr_f32[LC_IPL_R]=((float)_pxl[LC_IPL_R])/255.0f;
+		bgr_f32[LC_IPL_G]=((float)_pxl[LC_IPL_G])/255.0f;
+		bgr_f32[LC_IPL_B]=((float)_pxl[LC_IPL_B])/255.0f;
 	}
 
 
@@ -83,15 +86,15 @@ namespace CamU
 
 	namespace MatchMethods
 	{
-		float thresh( Pixel& _pxl, Color& target, void*& params )
+		float thresh( Pixel _pxl, Color& target, void* params )
 		{
 			Color cpxl(_pxl);
 			float thresh[3UL] = {0.1,0.1,0.1};
 			
-			if(params!=NULL)
+			if(params != (void*)NULL)
 			{
 				for(size_t idx = 0; idx < 3UL; idx++)
-					thresh[idx] = ((float*)params)[idx];
+					thresh[idx] = *((float*)params+idx);
 			}
 
 			for( size_t idx = 0; idx < 3UL; idx++ )
@@ -103,35 +106,38 @@ namespace CamU
 		} 
 
 
-		float linear( Pixel& _pxl, Color& target, void*& params )
+		float linear( Pixel _pxl, Color& target, void* params )
 		{
 			Color cpxl(_pxl);
 			float diff = 0.0f;
 			for( size_t idx = 0; idx < 3UL; idx++ )
-				diff += fabs(cpxl.bgr_f32[idx] - target.bgr_f32[idx])/3UL;
-
-			return float;
+			{
+				diff += fabs(cpxl.bgr_f32[idx] - target.bgr_f32[idx])/3.0f;
+			}
+			return diff;
 		}
 
 
-		float poly  ( Pixel& _pxl, Color& target, void*& params )
+		float poly  ( Pixel _pxl, Color& target, void* params )
 		{
 			float order = 2.0f;
 
-			if(params!=NULL)
+			if(params != (void*)NULL)
+			{
 				order = *((float*)params);
-			
-			return powf(linear(_pxl,target),order);
+			}
+
+			return powf( linear(_pxl,target) , order );
 		}
 
 
 
-		float fuzzy ( Pixel& _pxl, Color& target, void*& params )
+		float fuzzy ( Pixel _pxl, Color& target, void* params )
 		{
 			float center 		= 0.5f;
 			float temperature	= 1.0f;
 
-			if(params!=NULL)
+			if(params != (void*)NULL)
 			{
 				center 		= *((float*)params+0UL);
 				temperature = *((float*)params+1UL);
@@ -153,12 +159,12 @@ namespace CamU
 		os  << "<ColorTracker>\t"; 
 
 		os 	<< "<Point>\t" 
-			<< pt.x <<'\t' 
-			<< pt.y <<'\t' 
+			<< color_tracker.pt.x <<'\t' 
+			<< color_tracker.pt.y <<'\t' 
 			<< "</Point>\t";
 
 		os 	<< "<Saturation>\t" 
-			<< saturation<<'\t' 
+			<< color_tracker.saturation<<'\t' 
 			<< "</Saturation>\t";
 
 		os  << "</ColorTracker>"; 
@@ -180,16 +186,15 @@ namespace CamU
 		{
 			for(size_t j = 0; j < _ipl->width; j++)
 			{
-				match = _mfn(LC_IPL_PXL(_ipl,i,j),target,params);
-
-				u_pt.x 	+= (float)j;
-				u_pt.y 	+= (float)i;
+				match 	= 	_mfn((Pixel)LC_IPL_PXL(_ipl,i,j),target,params);				
+				u_pt.x 	+= ((float)j)*match;
+				u_pt.y 	+= ((float)i)*match;
 				u_sat	+=	match;
 			}
 		}
-		u_pt.x/=denom;
-		u_pt.y/=denom;
-		u_sat /=denom;
+		u_pt.x		/= denom;
+		u_pt.y		/= denom;
+		u_sat 		/= denom;
 
 		/// Update Track-Point
 		pt.x 		+= gain*( u_pt.x - pt.x );

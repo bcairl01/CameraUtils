@@ -33,7 +33,10 @@
 		class ColorTracker;
 
 		typedef uint8_t Pixel[3UL];
-		typedef float(*MatchMethod)(Pixel&,Color&,void*&);
+		typedef float(*MatchMethod)(Pixel,Color&,void*&);
+
+
+		std::ostream& operator<<( std::ostream& os, const Pixel& pxl );
 
 
 		/// IPL Macros
@@ -47,10 +50,10 @@
 
 		namespace MatchMethods
 		{
-		float linear( Pixel& _pxl, Color& target, void*& params );
-		float poly  ( Pixel& _pxl, Color& target, void*& params );
-		float fuzzy ( Pixel& _pxl, Color& target, void*& params );
-		float thresh( Pixel& _pxl, Color& target, void*& params );
+		float linear( Pixel _pxl, Color& target, void* params = (void*)NULL );
+		float poly  ( Pixel _pxl, Color& target, void* params = (void*)NULL );
+		float fuzzy ( Pixel _pxl, Color& target, void* params = (void*)NULL );
+		float thresh( Pixel _pxl, Color& target, void* params = (void*)NULL );
 		}
 
 
@@ -62,9 +65,8 @@
 			float 			bgr_f32[3UL];
 
 			Color();
-			Color( const uint8_t R08, const uint8_t G08, const uint8_t B08 );
 			Color( const float   R32, const float   G32, const float   B32 );
-			Color( Pixel& _pxl );
+			Color( Pixel _pxl );
 			
 			virtual ~Color()
 			{}
@@ -79,7 +81,7 @@
 			float 			saturation;
 			float 			gain;
 		public:
-			void process( IplImage*& _ipl, MatchMethod _mfn, Color& target, void* params = NULL );
+			void process( IplImage*& _ipl, MatchMethod _mfn, Color& target, void* params = (void*)NULL );
 			
 			ColorTracker( const float _gain ) :
 				saturation(0.0f),
